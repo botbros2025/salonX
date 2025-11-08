@@ -1,0 +1,19 @@
+{
+  "name": "salon360-saas",
+  "version": "1.0.0",
+  "description": "Salon360 SaaS - Complete salon management system",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd mobile-app && npm start",
+    "install:all": "npm install && cd backend && npm install && cd ../mobile-app && npm install"
+  },
+  "keywords": ["salon", "saas", "management"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+
