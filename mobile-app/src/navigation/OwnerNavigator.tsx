@@ -14,6 +14,7 @@ import CreateAppointmentScreen from '../screens/owner/CreateAppointmentScreen';
 import ClientDetailsScreen from '../screens/owner/ClientDetailsScreen';
 import FeedbackListScreen from '../screens/owner/FeedbackListScreen';
 import InvoiceScreen from '../screens/owner/InvoiceScreen';
+import CalendarViewScreen from '../screens/owner/CalendarViewScreen';
 import { RootStackParamList } from '../types';
 
 const Tab = createBottomTabNavigator();
@@ -137,6 +138,11 @@ export default function OwnerNavigator() {
         name="Invoice"
         component={InvoiceScreen}
         options={{ title: 'Invoice' }}
+      />
+      <Stack.Screen
+        name="CalendarView"
+        component={CalendarViewScreen}
+        options={{ title: 'Calendar' }}
       />
     </Stack.Navigator>
   );

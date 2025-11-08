@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { PrismaClient } from '@prisma/client';
 import { sendWhatsAppMessage } from './whatsapp.js';
+import { sendEmail, emailTemplates } from './email.js';
 
 const prisma = new PrismaClient();
 
@@ -130,18 +131,42 @@ export const sendDailySalesSummary = async (tenantId: string): Promise<void> => 
     const totalRevenue = invoices.reduce((sum, inv) => sum + inv.total, 0);
     const totalAppointments = invoices.length;
     
-    const admin = await prisma.user.findFirst({
-      where: {
-        tenantId,
-        role: {
-          in: ['owner', 'admin']
+    const [tenant, admin] = await Promise.all([
+      prisma.tenant.findUnique({ where: { id: tenantId } }),
+      prisma.user.findFirst({
+        where: {
+          tenantId,
+          role: {
+            in: ['owner', 'admin']
+          }
         }
-      }
-    });
+      })
+    ]);
     
     if (admin) {
+      // WhatsApp notification
       const message = `Daily Summary - ${today.toLocaleDateString()}\nRevenue: ₹${totalRevenue}\nAppointments: ${totalAppointments}`;
       await sendWhatsAppMessage(admin.phone, message);
+      
+      // Email notification
+      if (admin.email) {
+        try {
+          const emailData = emailTemplates.dailySummary({
+            ownerName: admin.name,
+            salonName: tenant?.businessName || 'Salon',
+            dailyRevenue: totalRevenue,
+            appointments: totalAppointments,
+            date: today.toLocaleDateString(),
+          });
+          await sendEmail({
+            to: admin.email,
+            subject: emailData.subject,
+            html: emailData.html,
+          });
+        } catch (emailError) {
+          console.error('Email notification failed:', emailError);
+        }
+      }
     }
   } catch (error) {
     console.error('Error sending daily sales summary:', error);

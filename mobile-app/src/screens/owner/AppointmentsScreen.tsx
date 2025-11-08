@@ -68,12 +68,20 @@ export default function AppointmentsScreen() {
       {/* Header with Add Button */}
       <View className="px-4 pt-4 pb-2 flex-row items-center justify-between">
         <Text className="text-2xl font-bold text-text-primary">Appointments</Text>
-        <TouchableOpacity
-          className="bg-primary-500 rounded-full w-10 h-10 items-center justify-center"
-          onPress={() => navigation.navigate('CreateAppointment' as any)}
-        >
-          <Ionicons name="add" size={24} color="#ffffff" />
-        </TouchableOpacity>
+        <View className="flex-row gap-2">
+          <TouchableOpacity
+            className="bg-primary-500 rounded-full w-10 h-10 items-center justify-center"
+            onPress={() => navigation.navigate('CalendarView' as any)}
+          >
+            <Ionicons name="calendar" size={20} color="#ffffff" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="bg-primary-500 rounded-full w-10 h-10 items-center justify-center"
+            onPress={() => navigation.navigate('CreateAppointment' as any)}
+          >
+            <Ionicons name="add" size={24} color="#ffffff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Filters */}

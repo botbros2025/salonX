@@ -7,10 +7,13 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Share,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Print from 'expo-print';
+import * as FileSystem from 'expo-file-system';
 import { RootStackParamList, Invoice } from '../../types';
 import { apiService } from '../../services/api';
 import { formatCurrency, formatDate } from '../../utils/helpers';
@@ -118,9 +121,155 @@ export default function InvoiceScreen() {
     }
   };
 
-  const handleShareInvoice = () => {
-    // In production, this would generate PDF and share
-    Alert.alert('Share Invoice', 'PDF generation and sharing will be implemented');
+  const generateInvoiceHTML = (invoiceData: Invoice, appointmentData: any) => {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 40px;
+              color: #1e293b;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 40px;
+              border-bottom: 2px solid #8b5cf6;
+              padding-bottom: 20px;
+            }
+            .invoice-number {
+              font-size: 24px;
+              font-weight: bold;
+              color: #8b5cf6;
+            }
+            .details {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 30px;
+            }
+            .section {
+              flex: 1;
+            }
+            .section-title {
+              font-weight: bold;
+              margin-bottom: 10px;
+              color: #64748b;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 20px 0;
+            }
+            th, td {
+              padding: 12px;
+              text-align: left;
+              border-bottom: 1px solid #e2e8f0;
+            }
+            th {
+              background-color: #f8fafc;
+              font-weight: bold;
+            }
+            .total-row {
+              font-weight: bold;
+              font-size: 18px;
+              background-color: #f8fafc;
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              color: #64748b;
+              font-size: 12px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>INVOICE</h1>
+            <div class="invoice-number">${invoiceData.invoiceNumber}</div>
+          </div>
+          
+          <div class="details">
+            <div class="section">
+              <div class="section-title">Bill To:</div>
+              <div>${appointmentData?.client?.name || 'Client'}</div>
+              <div>${appointmentData?.client?.phone || ''}</div>
+            </div>
+            <div class="section">
+              <div class="section-title">Invoice Date:</div>
+              <div>${formatDate(invoiceData.createdAt)}</div>
+              <div class="section-title" style="margin-top: 20px;">Payment Status:</div>
+              <div>${invoiceData.paymentStatus.toUpperCase()}</div>
+            </div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${appointmentData?.service?.name || 'Service'}</td>
+                <td>₹${invoiceData.subtotal.toFixed(2)}</td>
+              </tr>
+              ${invoiceData.tax > 0 ? `
+              <tr>
+                <td>Tax</td>
+                <td>₹${invoiceData.tax.toFixed(2)}</td>
+              </tr>
+              ` : ''}
+              ${invoiceData.discount > 0 ? `
+              <tr>
+                <td>Discount</td>
+                <td>-₹${invoiceData.discount.toFixed(2)}</td>
+              </tr>
+              ` : ''}
+              <tr class="total-row">
+                <td>Total</td>
+                <td>₹${invoiceData.total.toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
+          
+          ${invoiceData.notes ? `
+          <div style="margin-top: 20px;">
+            <strong>Notes:</strong>
+            <p>${invoiceData.notes}</p>
+          </div>
+          ` : ''}
+          
+          <div class="footer">
+            <p>Thank you for your business!</p>
+          </div>
+        </body>
+      </html>
+    `;
+  };
+
+  const handleShareInvoice = async () => {
+    if (!invoice || !appointment) {
+      Alert.alert('Error', 'Invoice data not available');
+      return;
+    }
+
+    try {
+      const html = generateInvoiceHTML(invoice, appointment);
+      
+      // Generate PDF
+      const { uri } = await Print.printToFileAsync({ html });
+      
+      // Share the PDF
+      await Share.share({
+        url: uri,
+        title: `Invoice ${invoice.invoiceNumber}`,
+      });
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to generate PDF');
+    }
   };
 
   if (loading) {

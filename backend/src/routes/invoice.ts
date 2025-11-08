@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticate } from '../middleware/auth.js';
 import { sendWhatsAppMessage } from '../services/whatsapp.js';
+import { sendEmail, emailTemplates } from '../services/email.js';
 import { updateLoyaltyTier } from './client.js';
 import { AuthenticatedRequest } from '../types/index.js';
 
@@ -191,10 +192,34 @@ router.post('/', authenticate, async (req: Request<{}, {}, CreateInvoiceRequest>
     
     // Send WhatsApp invoice
     try {
-      const message = `Thank you ${appointment.client.name}! Your bill of ₹${total} for ${appointment.service.name} has been generated. Invoice: ${invoiceNumber}`;
+      const message = `Thank you ${appointment.client.name}! Your bill of ₹${total} for ${appointment.service.name} has been generated.\n\nInvoice: ${invoiceNumber}\n\nView your invoice in the app or check your email.`;
       await sendWhatsAppMessage(appointment.client.phone, message);
     } catch (error) {
       console.error('WhatsApp notification failed:', error);
+    }
+    
+    // Send email invoice
+    if (appointment.client.email) {
+      try {
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: authReq.tenantId }
+        });
+        
+        const emailData = emailTemplates.invoice({
+          clientName: appointment.client.name,
+          invoiceNumber: invoice.invoiceNumber,
+          total: invoice.total,
+          salonName: tenant?.businessName || 'Salon',
+        });
+        
+        await sendEmail({
+          to: appointment.client.email,
+          subject: emailData.subject,
+          html: emailData.html,
+        });
+      } catch (error) {
+        console.error('Email notification failed:', error);
+      }
     }
     
     res.status(201).json({ invoice });

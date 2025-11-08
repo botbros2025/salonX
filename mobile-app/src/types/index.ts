@@ -247,6 +247,7 @@ export type RootStackParamList = {
   Invoice: {
     appointmentId: string;
   };
+  CalendarView: undefined;
 };
 
 // API Response Types

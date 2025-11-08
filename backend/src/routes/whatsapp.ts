@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { sendWhatsAppMessage } from '../services/whatsapp.js';
+import { processWhatsAppBooking } from '../services/whatsappBot.js';
 import { AuthenticatedRequest } from '../types/index.js';
 
 const router = express.Router();
@@ -10,50 +11,61 @@ interface WhatsAppWebhookRequest {
   From: string;
   Body: string;
   MessageSid?: string;
+  To?: string;
 }
 
 // Webhook endpoint for receiving WhatsApp messages
 router.post('/webhook', async (req: Request<{}, {}, WhatsAppWebhookRequest>, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { From, Body } = req.body;
+    const { From, Body, To } = req.body;
     
     // Extract phone number (remove whatsapp: prefix if present)
     const phoneNumber = From.replace('whatsapp:', '').trim();
-    const message = Body.trim().toLowerCase();
+    const message = Body.trim();
     
-    // Simple keyword matching for auto-booking
-    // In production, use a more sophisticated NLP or intent recognition
+    // Find tenant by WhatsApp number (in production, maintain a mapping table)
+    // For now, try to find by matching phone number or use first tenant
+    const tenant = await prisma.tenant.findFirst({
+      where: {
+        // In production, add a whatsappPhone field to Tenant model
+        // For now, use first tenant or match by business phone
+      },
+      take: 1,
+    });
     
-    // Example: "I want a haircut today at 5 PM"
-    const keywords = {
-      'haircut': 'haircut',
-      'hair cut': 'haircut',
-      'pedicure': 'pedicure',
-      'manicure': 'manicure',
-      'facial': 'facial',
-      'massage': 'massage'
-    };
-    
-    let detectedService: string | null = null;
-    for (const [keyword, service] of Object.entries(keywords)) {
-      if (message.includes(keyword)) {
-        detectedService = service;
-        break;
-      }
+    if (!tenant) {
+      await sendWhatsAppMessage(phoneNumber, 'Sorry, salon not found. Please contact the salon directly.');
+      res.status(200).json({ status: 'ok' });
+      return;
     }
     
-    if (detectedService) {
-      // Find tenant by phone number (in production, maintain a mapping)
-      // For now, send a generic response
-      const reply = `Thank you for your interest in ${detectedService}! Please provide your preferred date and time, or call us for immediate booking.`;
+    // Check if user is in booking flow
+    const lowerMessage = message.toLowerCase();
+    const isBookingIntent =
+      lowerMessage.includes('book') ||
+      lowerMessage.includes('appointment') ||
+      lowerMessage.includes('schedule') ||
+      lowerMessage.includes('haircut') ||
+      lowerMessage.includes('hair cut') ||
+      lowerMessage.includes('pedicure') ||
+      lowerMessage.includes('manicure') ||
+      lowerMessage.includes('facial') ||
+      lowerMessage.includes('massage') ||
+      lowerMessage.includes('service');
+    
+    if (isBookingIntent) {
+      // Process booking flow
+      const reply = await processWhatsAppBooking(phoneNumber, message, tenant.id);
       await sendWhatsAppMessage(phoneNumber, reply);
     } else {
-      const reply = 'Thank you for contacting us! How can we help you today? Reply with a service name to book an appointment.';
+      // Generic response
+      const reply = `Hello! 👋 Welcome to ${tenant.businessName}.\n\nTo book an appointment, reply with:\n• Service name (e.g., "haircut")\n• Or type "book" to start booking\n\nWe'll guide you through the process!`;
       await sendWhatsAppMessage(phoneNumber, reply);
     }
     
     res.status(200).json({ status: 'ok' });
   } catch (error) {
+    console.error('WhatsApp webhook error:', error);
     next(error);
   }
 });

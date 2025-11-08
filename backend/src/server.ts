@@ -16,6 +16,7 @@ import invoiceRoutes from './routes/invoice.js';
 import feedbackRoutes from './routes/feedback.js';
 import analyticsRoutes from './routes/analytics.js';
 import whatsappRoutes from './routes/whatsapp.js';
+import uploadRoutes from './routes/upload.js';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js';
@@ -57,6 +58,7 @@ app.use('/api/inventory', authenticate, inventoryRoutes);
 app.use('/api/invoices', authenticate, invoiceRoutes);
 app.use('/api/feedback', authenticate, feedbackRoutes);
 app.use('/api/analytics', authenticate, analyticsRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Error handling
 app.use(errorHandler);

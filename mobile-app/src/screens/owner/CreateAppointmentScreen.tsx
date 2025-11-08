@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../../types';
 import { apiService } from '../../services/api';
 import { formatDateTime } from '../../utils/helpers';
+import CustomDateTimePicker from '../../components/DateTimePicker';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -187,6 +188,17 @@ export default function CreateAppointmentScreen() {
               </TouchableOpacity>
             ))}
           </View>
+        </View>
+
+        {/* Date & Time Selection */}
+        <View className="mb-6">
+          <CustomDateTimePicker
+            value={new Date(formData.scheduledAt)}
+            onChange={(date) => setFormData({ ...formData, scheduledAt: date.toISOString() })}
+            mode="datetime"
+            minimumDate={new Date()}
+            label="Date & Time *"
+          />
         </View>
 
         {/* Notes */}

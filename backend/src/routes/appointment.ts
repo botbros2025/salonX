@@ -205,7 +205,7 @@ router.post('/', authenticate, async (req: Request<{}, {}, CreateAppointmentRequ
       });
       
       if (service && staff) {
-        const message = `Hi ${appointment.client.name}, your appointment for ${service.name} is confirmed with ${staff.user.name} at ${new Date(scheduledAt).toLocaleString()}.`;
+        const message = `Hi ${appointment.client.name}, your appointment for ${service.name} is confirmed with ${staff.user.name} at ${new Date(scheduledAt).toLocaleString()}.\n\nWe'll send you a reminder 1 hour before. See you soon!`;
         await sendWhatsAppMessage(appointment.client.phone, message);
       }
     } catch (whatsappError) {
