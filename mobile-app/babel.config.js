@@ -5,6 +5,10 @@ module.exports = function (api) {
       ['babel-preset-expo', { jsxImportSource: 'nativewind' }],
       'nativewind/babel',
     ],
+    // Reanimated (and related worklets) requires its plugin to be added last.
+    plugins: [
+      'react-native-reanimated/plugin',
+    ],
   };
 };
 
